@@ -168,6 +168,6 @@ def format_data_for_display(data: Dict[str, str]) -> str:
     lines = []
     for header, value in data.items():
         if value:  # Показываем только непустые значения
-            lines.append(f"{header}: {value}")
+            lines.append(f"**{header}**\n{value}")
     
-    return "\n".join(lines) if lines else "Данные не найдены"
+    return "\n\n".join(lines) if lines else "Данные не найдены"
