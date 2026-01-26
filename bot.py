@@ -9,7 +9,7 @@ from serial_number import parse_serial_number
 from google_sheets import get_data_by_serial_number, format_data_for_display
 
 # Версия бота
-BOT_VERSION = "0.0.2"
+BOT_VERSION = "0.0.3"
 
 # Загружаем переменные окружения
 load_dotenv()
