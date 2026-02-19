@@ -137,9 +137,9 @@ def get_data_by_serial_number(serial_number: str) -> Optional[Dict[str, str]]:
         # Формируем словарь с данными
         result = {}
         for col_index, header in enumerate(headers):
-            # Пропускаем игнорируемые столбцы и столбец с серийным номером
+            # Пропускаем игнорируемые столбцы, столбцы с названиями начинающимися с _, и столбец с серийным номером
             col_number = col_index + 1  # 1-based номер столбца
-            if col_number in _ignore_columns_set or col_index == serial_col_index:
+            if col_number in _ignore_columns_set or col_index == serial_col_index or (header and header.startswith('_')):
                 continue
             
             # Получаем значение из найденной строки
