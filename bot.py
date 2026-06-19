@@ -1,15 +1,23 @@
 """
 Телеграм бот для получения информации по серийному номеру.
 """
+import logging
 import os
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from serial_number import parse_serial_number
 from google_sheets import get_data_by_serial_number, format_data_for_display
+from usage_log import log_usage
 
 # Версия бота
-BOT_VERSION = "0.0.3"
+BOT_VERSION = "0.0.4"
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -20,11 +28,25 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN не установлен в переменных окружения!")
 
+def _log_user_event(update: Update, event: str, serial: str = "", result: str = "") -> None:
+    user = update.effective_user
+    if user is None:
+        return
+    log_usage(
+        user_id=user.id,
+        username=user.username,
+        event=event,
+        serial=serial,
+        result=result,
+    )
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Обработчик команды /start.
     Отправляет справку по использованию бота.
     """
+    _log_user_event(update, event="start")
     help_text = (
         "👋 Добро пожаловать!\n\n"
         "Этот бот позволяет получить информацию по серийному номеру изделия.\n\n"
@@ -48,7 +70,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     is_valid, result = parse_serial_number(user_input)
     
     if not is_valid:
-        # Если валидация не прошла, отправляем сообщение об ошибке
+        _log_user_event(update, event="lookup", result="validation_failed")
         await update.message.reply_text(f"❌ {result}")
         return
     
@@ -60,16 +82,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         data = get_data_by_serial_number(normalized_serial)
         
         if data is None:
+            _log_user_event(
+                update,
+                event="lookup",
+                serial=normalized_serial,
+                result="not_found",
+            )
             await update.message.reply_text(
                 f"❌ Серийный номер {normalized_serial} не найден в базе данных."
             )
         else:
-            # Форматируем и отправляем данные
+            _log_user_event(
+                update,
+                event="lookup",
+                serial=normalized_serial,
+                result="found",
+            )
             formatted_data = format_data_for_display(data)
             response = f"✅ *Серийный номер:* {normalized_serial}\n\n{formatted_data}"
             await update.message.reply_text(response, parse_mode="Markdown")
             
     except Exception as e:
+        logger.exception("Ошибка при поиске данных для SN %s", normalized_serial)
+        _log_user_event(
+            update,
+            event="lookup",
+            serial=normalized_serial,
+            result="error",
+        )
         await update.message.reply_text(
             f"❌ Произошла ошибка при поиске данных: {str(e)}"
         )
@@ -85,8 +125,7 @@ def main() -> None:
     # Регистрируем обработчик текстовых сообщений (все сообщения, кроме команд)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    # Запускаем бота
-    print("Бот запущен...")
+    logger.info("Бот запущен (версия %s)", BOT_VERSION)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

@@ -268,9 +268,48 @@ docker rm telegram-chillskill-info-bot
 | `GOOGLE_APPLICATION_CREDENTIALS` | Альтернативный способ указания пути к credentials | Нет** | - |
 | `SERIAL_NUMBER_COLUMN` | Номер столбца с серийными номерами (1-based) | Нет | `1` |
 | `IGNORE_COLUMNS` | Номера столбцов для игнорирования (через запятую). Также игнорируются столбцы с названиями, начинающимися с `_` | Нет | - |
+| `USAGE_LOG_PATH` | Путь к файлу журнала обращений | Нет | `data/usage.log` |
 
 \* Необходимо указать либо `SHEET_PAT`, либо `GOOGLE_APPLICATION_CREDENTIALS`  
 \** Используется только если не указан `SHEET_PAT`
+
+## Статистика использования
+
+Бот пишет журнал обращений в файл `data/usage.log` (путь можно переопределить через `USAGE_LOG_PATH`).
+
+### Просмотр статистики на сервере
+
+Если бот запущен через Docker Compose:
+
+```bash
+# Сводка за всё время
+docker exec telegram-chillskill-info-bot python stats.py
+
+# За период
+docker exec telegram-chillskill-info-bot python stats.py --since 2026-06-01 --until 2026-06-19
+
+# Сохранить отчёт в файл на хосте (каталог data/ смонтирован в контейнер)
+docker exec telegram-chillskill-info-bot python stats.py --since 2026-06-01 --export /app/data/report.txt
+```
+
+Файл `report.txt` появится в каталоге `./data/` на сервере. Можно также скачать его через `scp` или просто открыть `data/usage.log` — это TSV-журнал всех обращений.
+
+При локальном запуске:
+
+```bash
+python stats.py
+python stats.py --since 2026-06-01 --export report.txt
+```
+
+### Что логируется
+
+| Событие | Описание |
+| ------- | -------- |
+| `start` | Команда `/start` |
+| `lookup` + `found` | Успешный поиск по серийному номеру |
+| `lookup` + `not_found` | Номер валиден, но не найден в таблице |
+| `lookup` + `validation_failed` | Неверный формат номера |
+| `lookup` + `error` | Ошибка при обращении к Google Sheets |
 
 ## Разработка
 
@@ -285,6 +324,8 @@ pytest test_get_info_sn.py
 ```
 .
 ├── bot.py                 # Основной файл бота
+├── usage_log.py           # Журнал обращений к боту
+├── stats.py               # CLI для статистики и экспорта отчёта
 ├── serial_number.py       # Модуль для работы с серийными номерами
 ├── luhn_algorithm.py      # Алгоритм Луна для проверки контрольной суммы
 ├── google_sheets.py       # Модуль для работы с Google Sheets

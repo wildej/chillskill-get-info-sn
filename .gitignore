@@ -33,3 +33,7 @@ wheels/
 *.swp
 *.swo
 *~
+
+# Usage logs (generated at runtime)
+data/*.log
+data/report*.txt
