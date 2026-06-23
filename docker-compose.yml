@@ -11,3 +11,5 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
     volumes:
       - ./data:/app/data
+      - ./stats.py:/app/stats.py:ro
+      - ./usage_log.py:/app/usage_log.py:ro

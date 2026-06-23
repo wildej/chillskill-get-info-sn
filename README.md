@@ -282,6 +282,11 @@ docker rm telegram-chillskill-info-bot
 Если бот запущен через Docker Compose:
 
 ```bash
+# После обновления кода перезапустите контейнер (stats.py монтируется с хоста)
+docker compose up -d
+```
+
+```bash
 # Сводка за всё время
 docker exec telegram-chillskill-info-bot python stats.py
 
@@ -293,6 +298,13 @@ docker exec telegram-chillskill-info-bot python stats.py --since 2026-06-01 --ex
 ```
 
 Файл `report.txt` появится в каталоге `./data/` на сервере. Можно также скачать его через `scp` или просто открыть `data/usage.log` — это TSV-журнал всех обращений.
+
+Тот же отчёт можно получить на хосте без `docker exec` (журнал лежит в `./data/usage.log`):
+
+```bash
+pip install -r requirements.txt   # один раз, если ещё не установлено
+python stats.py
+```
 
 При локальном запуске:
 
