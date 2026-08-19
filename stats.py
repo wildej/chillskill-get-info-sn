@@ -13,7 +13,7 @@ from collections import Counter
 from datetime import datetime, time, timezone
 from pathlib import Path
 
-from usage_log import get_log_path, iter_entries
+from usage_log import get_log_path, iter_entries, mask_user_id, mask_username
 
 
 def _parse_date(value: str, end_of_day: bool = False) -> datetime:
@@ -53,7 +53,7 @@ def build_report(entries, since: datetime | None, until: datetime | None) -> str
         lines.append("Период: все записи")
 
     lines.append(f"Всего обращений: {len(entries)}")
-    lines.append(f"Уникальных пользователей: {len({e.user_id for e in entries})}")
+    lines.append(f"Уникальных пользователей: {len({mask_user_id(e.user_id) for e in entries})}")
     lines.append("")
 
     event_counts = Counter(_event_label(e) for e in entries)
@@ -68,7 +68,7 @@ def build_report(entries, since: datetime | None, until: datetime | None) -> str
         lines.append("(нет записей за выбранный период)")
     else:
         for entry in entries:
-            user = f"@{entry.username}" if entry.username else f"id={entry.user_id}"
+            user = mask_username(entry.username, user_id=entry.user_id)
             ts = _format_local_ts(entry.timestamp)
             detail = _event_label(entry)
             if entry.serial:
